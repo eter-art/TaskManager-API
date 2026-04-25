@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManager_API.Data;
+using TaskManager_API.DTOs;
 using TaskManager_API.Models;
 
 namespace TaskManager_API.Controllers
@@ -18,35 +19,75 @@ namespace TaskManager_API.Controllers
 
         // GET: api/tasks
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks()
+        public async Task<ActionResult<IEnumerable<TaskItemResponseDto>>> GetTasks()
         {
-            return await _context.Tasks.ToListAsync();
+            return await _context.Tasks
+                .Select(t => new TaskItemResponseDto
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    Description = t.Description,
+                    IsCompleted = t.IsCompleted,
+                    CreatedAt = t.CreatedAt,
+                    DueDate = t.DueDate
+                })
+                .ToListAsync();
         }
 
         // GET: api/tasks/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<TaskItem>> GetTask(int id)
+        public async Task<ActionResult<TaskItemResponseDto>> GetTask(int id)
         {
             var task = await _context.Tasks.FindAsync(id);
             if (task == null) return NotFound();
-            return task;
+
+            return new TaskItemResponseDto
+            {
+                Id = task.Id,
+                Title = task.Title,
+                Description = task.Description,
+                IsCompleted = task.IsCompleted,
+                CreatedAt = task.CreatedAt,
+                DueDate = task.DueDate
+            };
         }
 
         // POST: api/tasks
         [HttpPost]
-        public async Task<ActionResult<TaskItem>> CreateTask(TaskItem task)
+        public async Task<ActionResult<TaskItemResponseDto>> CreateTask(TaskItemCreateDto dto)
         {
+            var task = new TaskItem
+            {
+                Title = dto.Title,
+                Description = dto.Description,
+                DueDate = dto.DueDate
+            };
+
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
+
+            return CreatedAtAction(nameof(GetTask), new { id = task.Id }, new TaskItemResponseDto
+            {
+                Id = task.Id,
+                Title = task.Title,
+                Description = task.Description,
+                IsCompleted = task.IsCompleted,
+                CreatedAt = task.CreatedAt,
+                DueDate = task.DueDate
+            });
         }
 
         // PUT: api/tasks/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTask(int id, TaskItem task)
+        public async Task<IActionResult> UpdateTask(int id, TaskItemCreateDto dto)
         {
-            if (id != task.Id) return BadRequest();
-            _context.Entry(task).State = EntityState.Modified;
+            var task = await _context.Tasks.FindAsync(id);
+            if (task == null) return NotFound();
+
+            task.Title = dto.Title;
+            task.Description = dto.Description;
+            task.DueDate = dto.DueDate;
+
             await _context.SaveChangesAsync();
             return NoContent();
         }
@@ -57,6 +98,7 @@ namespace TaskManager_API.Controllers
         {
             var task = await _context.Tasks.FindAsync(id);
             if (task == null) return NotFound();
+
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
             return NoContent();
