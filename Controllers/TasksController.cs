@@ -92,6 +92,18 @@ namespace TaskManager_API.Controllers
             return NoContent();
         }
 
+        // PATCH: api/tasks/5/complete
+        [HttpPatch("{id}/complete")]
+        public async Task<IActionResult> CompleteTask(int id)
+        {
+            var task = await _context.Tasks.FindAsync(id);
+            if (task == null) return NotFound();
+
+            task.IsCompleted = true;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
         // DELETE: api/tasks/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTask(int id)
